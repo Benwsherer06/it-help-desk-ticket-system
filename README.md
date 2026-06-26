@@ -1,24 +1,89 @@
-# IT Help Desk Ticket System
+IT Help Desk Ticket System
 
-A full-stack web application that lets users submit IT support tickets and lets technicians or admins manage, prioritize and resolve those tickets.
+A full stack help desk app where users can sign up, log in, create support tickets and also view their submitted tickets.
 
-## Project Status
+Current MVP features implemented:
 
-MVP build phase for my IT class's 3rd milestone
+Users can create an account, log in, log out, create a ticket and view their own tickets on the dashboard.
 
-## Planned Tech Stack
+The app includes basic validation for missing fields, duplicate accounts and wrong login information.
 
-Frontend: React  
-Backend: Node.js and Express  
-Database: PostgreSQL  
-Languages: JavaScript, HTML, CSS and SQL  
+Tech stack
 
-## MVP Features
+Frontend: React with Vite
 
-Users will be able to sign up, log in, create support tickets, view their own tickets and open a ticket detail page.
+Backend: Node.js and Express
 
-Technicians or admins will be able to view tickets, update statuses and comment on tickets later in the project.
+Storage for MVP: Local JSON file
 
-## Complexity Anchor
+Languages: JavaScript, JSX, CSS and JSON
 
-The main complexity anchor for the MVP is authentication and authorization, I think I put that on the slideshow.
+Complexity anchor
+
+Authentication and authorization
+
+The MVP has signup, login, password hashing, login tokens and protected ticket routes.
+
+Full tutorial:
+
+Clone the repo.
+
+git clone https://github.com/Benwsherer06/it-help-desk-ticket-system.git
+
+cd it-help-desk-ticket-system
+
+Start the backend.
+
+cd server
+
+npm.cmd install
+
+npm.cmd run dev
+
+The backend runs at http://localhost:5000
+
+Start the frontend in a second terminal.
+
+cd client
+
+npm.cmd install
+
+npm.cmd run dev
+
+The frontend runs at http://localhost:5173 normally
+
+How to test the MVP:
+
+Start the backend and frontend.
+
+Open http://localhost:5173 in the browser.
+
+Create an account.
+
+Log out.
+
+Log back in.
+
+Create a ticket.
+
+Check that the ticket appears on the dashboard.
+
+Click the ticket to view the details.
+
+Try to submit a blank ticket to confirm the error message works.
+
+Future improvements
+
+Add PostgreSQL.
+
+Add technician or admin dashboard.
+
+Add ticket comments.
+
+Add ticket status updates.
+
+Add search and filtering.
+
+Add deployment.
+
+As well as finish up all the issues that say "In Progress"
