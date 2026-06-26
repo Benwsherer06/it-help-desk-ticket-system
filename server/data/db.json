@@ -1,0 +1,34 @@
+{
+  "users": [
+    {
+      "id": "1ffe4fdc-a1fd-44a4-8bf9-e2cbc40efc38",
+      "name": "Test User",
+      "email": "test@example.com",
+      "passwordHash": "$2b$10$Ne7yUdel9JKBTsWA6xTX4OaWV7scY8SG2YTUJQGJ4idkft9W8aO/e",
+      "role": "user",
+      "createdAt": "2026-06-26T17:19:52.790Z"
+    },
+    {
+      "id": "c3985a9c-8207-4565-95e5-558b3e910ce5",
+      "name": "Ben Sherer",
+      "email": "bensherer2006@gmail.com",
+      "passwordHash": "$2b$10$93ovnPeuR/wfn9ysjRWyOeLqk3wEHD81WZLgx3x32CYE1anr7P11O",
+      "role": "user",
+      "createdAt": "2026-06-26T17:24:24.890Z"
+    }
+  ],
+  "tickets": [
+    {
+      "id": "8d5e4dac-ab6d-4704-9f43-d94832cefd09",
+      "title": "Computer won't connect",
+      "description": "Something",
+      "category": "Hardware",
+      "priority": "Medium",
+      "status": "Open",
+      "createdBy": "c3985a9c-8207-4565-95e5-558b3e910ce5",
+      "createdByName": "Ben Sherer",
+      "createdAt": "2026-06-26T17:25:03.362Z",
+      "updatedAt": "2026-06-26T17:25:03.362Z"
+    }
+  ]
+}
