@@ -7,6 +7,7 @@ import { requireAuth } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-later";
+const ADMIN_CODE = process.env.ADMIN_CODE || "admin123";
 
 function createToken(user) {
   return jwt.sign(
@@ -24,7 +25,7 @@ function createToken(user) {
 }
 
 router.post("/register", async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, adminCode } = req.body;
 
   if (!name || !email || !password) {
     return res.status(400).json({
@@ -39,6 +40,19 @@ router.post("/register", async (req, res) => {
   }
 
   const db = await readDb();
+
+  if (!db.users) {
+    db.users = [];
+  }
+
+  if (!db.tickets) {
+    db.tickets = [];
+  }
+
+  if (!db.comments) {
+    db.comments = [];
+  }
+
   const existingUser = db.users.find(
     (user) => user.email.toLowerCase() === email.toLowerCase()
   );
@@ -50,13 +64,14 @@ router.post("/register", async (req, res) => {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
+  const role = adminCode === ADMIN_CODE ? "admin" : "user";
 
   const newUser = {
     id: uuidv4(),
     name: name.trim(),
     email: email.trim().toLowerCase(),
     passwordHash,
-    role: "user",
+    role,
     createdAt: new Date().toISOString()
   };
 
@@ -87,6 +102,11 @@ router.post("/login", async (req, res) => {
   }
 
   const db = await readDb();
+
+  if (!db.users) {
+    db.users = [];
+  }
+
   const user = db.users.find(
     (savedUser) => savedUser.email.toLowerCase() === email.toLowerCase()
   );

@@ -1,34 +1,75 @@
 {
   "users": [
     {
-      "id": "1ffe4fdc-a1fd-44a4-8bf9-e2cbc40efc38",
-      "name": "Test User",
-      "email": "test@example.com",
-      "passwordHash": "$2b$10$Ne7yUdel9JKBTsWA6xTX4OaWV7scY8SG2YTUJQGJ4idkft9W8aO/e",
+      "id": "8813b2f2-31b4-4aab-b8dc-e4b69496b654",
+      "name": "Regular User",
+      "email": "user@example.com",
+      "passwordHash": "$2b$10$yPABF9E3yjyt8ezm78FiVeetcWh6kWL0x0yOivBONFJcuXqqxNOZS",
       "role": "user",
-      "createdAt": "2026-06-26T17:19:52.790Z"
+      "createdAt": "2026-06-28T19:19:09.408Z"
     },
     {
-      "id": "c3985a9c-8207-4565-95e5-558b3e910ce5",
-      "name": "Ben Sherer",
-      "email": "bensherer2006@gmail.com",
-      "passwordHash": "$2b$10$93ovnPeuR/wfn9ysjRWyOeLqk3wEHD81WZLgx3x32CYE1anr7P11O",
-      "role": "user",
-      "createdAt": "2026-06-26T17:24:24.890Z"
+      "id": "55884fb1-fcbf-4af8-8a27-5d8d769b64e6",
+      "name": "Admin User",
+      "email": "admin@example.com",
+      "passwordHash": "$2b$10$j2W2eZvUkjIR9bKGIzM64OPtU8TJrdsJwZg.UF8WvE73p/rMFEUTy",
+      "role": "admin",
+      "createdAt": "2026-06-28T19:19:13.944Z"
     }
   ],
   "tickets": [
     {
-      "id": "8d5e4dac-ab6d-4704-9f43-d94832cefd09",
-      "title": "Computer won't connect",
-      "description": "Something",
+      "id": "a5ca73a8-141c-48d3-b1c5-1003c93d54ef",
+      "title": "asd",
+      "description": "asd",
       "category": "Hardware",
-      "priority": "Medium",
+      "priority": "Low",
+      "status": "In Progress",
+      "createdBy": "55884fb1-fcbf-4af8-8a27-5d8d769b64e6",
+      "createdByName": "Admin User",
+      "createdAt": "2026-06-28T19:22:55.128Z",
+      "updatedAt": "2026-06-28T19:23:13.023Z"
+    },
+    {
+      "id": "da82ebea-9395-4ae2-9e34-d14945fdcf3f",
+      "title": "qwe",
+      "description": "qwe",
+      "category": "Hardware",
+      "priority": "Low",
       "status": "Open",
-      "createdBy": "c3985a9c-8207-4565-95e5-558b3e910ce5",
-      "createdByName": "Ben Sherer",
-      "createdAt": "2026-06-26T17:25:03.362Z",
-      "updatedAt": "2026-06-26T17:25:03.362Z"
+      "createdBy": "8813b2f2-31b4-4aab-b8dc-e4b69496b654",
+      "createdByName": "Regular User",
+      "createdAt": "2026-06-28T19:23:44.474Z",
+      "updatedAt": "2026-06-28T19:23:57.121Z"
+    }
+  ],
+  "comments": [
+    {
+      "id": "9541f8aa-124c-4891-afc9-01c013915867",
+      "ticketId": "a5ca73a8-141c-48d3-b1c5-1003c93d54ef",
+      "body": "Working on it",
+      "createdBy": "55884fb1-fcbf-4af8-8a27-5d8d769b64e6",
+      "createdByName": "Admin User",
+      "createdByRole": "admin",
+      "createdAt": "2026-06-28T19:23:13.023Z"
+    },
+    {
+      "id": "6071324a-3415-4b00-b98f-06c137692761",
+      "ticketId": "da82ebea-9395-4ae2-9e34-d14945fdcf3f",
+      "body": "thanks man",
+      "createdBy": "8813b2f2-31b4-4aab-b8dc-e4b69496b654",
+      "createdByName": "Regular User",
+      "createdByRole": "user",
+      "createdAt": "2026-06-28T19:23:51.234Z"
+    },
+    {
+      "id": "d212882b-cffa-4e80-9459-4e3d7ad1d62e",
+      "ticketId": "da82ebea-9395-4ae2-9e34-d14945fdcf3f",
+      "body": "fuck",
+      "createdBy": "8813b2f2-31b4-4aab-b8dc-e4b69496b654",
+      "createdByName": "Regular User",
+      "createdByRole": "user",
+      "createdAt": "2026-06-28T19:23:57.121Z"
     }
   ]
 }

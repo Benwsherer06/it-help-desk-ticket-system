@@ -1,237 +1,395 @@
-import { useEffect, useState } from "react";
-import { apiRequest } from "./api";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
+import { apiRequest } from "./api";
 
-const emptyAuthForm = {
-  name: "",
-  email: "",
-  password: ""
-};
+const categories = ["Hardware", "Software", "Network", "Account", "Other"];
+const priorities = ["Low", "Medium", "High"];
+const statuses = ["Open", "In Progress", "Resolved", "Closed"];
 
-const emptyTicketForm = {
-  title: "",
-  description: "",
-  category: "Hardware",
-  priority: "Medium"
-};
+function getSavedUser() {
+  try {
+    return JSON.parse(localStorage.getItem("user"));
+  } catch {
+    return null;
+  }
+}
 
 function App() {
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [user, setUser] = useState(getSavedUser());
   const [authMode, setAuthMode] = useState("login");
-  const [authForm, setAuthForm] = useState(emptyAuthForm);
-  const [ticketForm, setTicketForm] = useState(emptyTicketForm);
-  const [user, setUser] = useState(() => getStoredUser());
-  const [token, setToken] = useState(() => localStorage.getItem("helpdeskToken") || "");
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loadingTickets, setLoadingTickets] = useState(false);
 
-  const isLoggedIn = Boolean(user && token);
+  const [loginForm, setLoginForm] = useState({
+    email: "",
+    password: ""
+  });
 
-  useEffect(() => {
-    if (isLoggedIn) {
-      loadTickets(token);
-    }
-  }, [isLoggedIn, token]);
+  const [registerForm, setRegisterForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    adminCode: ""
+  });
 
-  function getStoredUser() {
-    try {
-      const storedUser = localStorage.getItem("helpdeskUser");
-      return storedUser ? JSON.parse(storedUser) : null;
-    } catch {
-      return null;
-    }
-  }
+  const [ticketForm, setTicketForm] = useState({
+    title: "",
+    description: "",
+    category: "Hardware",
+    priority: "Low"
+  });
 
-  function updateAuthForm(event) {
-    const { name, value } = event.target;
+  const [commentBody, setCommentBody] = useState("");
 
-    setAuthForm((currentForm) => ({
-      ...currentForm,
-      [name]: value
-    }));
-  }
+  const isAdmin = user?.role === "admin";
 
-  function updateTicketForm(event) {
-    const { name, value } = event.target;
+  const ticketCounts = useMemo(() => {
+    return {
+      total: tickets.length,
+      open: tickets.filter((ticket) => ticket.status === "Open").length,
+      inProgress: tickets.filter((ticket) => ticket.status === "In Progress").length,
+      resolved: tickets.filter((ticket) => ticket.status === "Resolved").length
+    };
+  }, [tickets]);
 
-    setTicketForm((currentForm) => ({
-      ...currentForm,
-      [name]: value
-    }));
-  }
-
-  function clearAlerts() {
+  function clearMessages() {
     setMessage("");
     setError("");
   }
 
-  async function handleAuthSubmit(event) {
-    event.preventDefault();
-    clearAlerts();
-    setLoading(true);
+  function saveSession(data) {
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+    setToken(data.token);
+    setUser(data.user);
+  }
+
+  function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setToken("");
+    setUser(null);
+    setTickets([]);
+    setSelectedTicket(null);
+    setMessage("Logged out successfully.");
+    setError("");
+  }
+
+  async function loadTickets() {
+    if (!token || !user) {
+      return;
+    }
 
     try {
-      const endpoint = authMode === "login" ? "/auth/login" : "/auth/register";
+      setLoadingTickets(true);
+      clearMessages();
 
-      const body =
-        authMode === "login"
-          ? {
-              email: authForm.email,
-              password: authForm.password
-            }
-          : {
-              name: authForm.name,
-              email: authForm.email,
-              password: authForm.password
-            };
-
+      const endpoint = isAdmin ? "/tickets" : "/tickets/my";
       const data = await apiRequest(endpoint, {
+        token
+      });
+
+      setTickets(data.tickets || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoadingTickets(false);
+    }
+  }
+
+  async function loadTicketDetails(ticketId) {
+    try {
+      clearMessages();
+
+      const data = await apiRequest(`/tickets/${ticketId}`, {
+        token
+      });
+
+      setSelectedTicket(data.ticket);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleRegister(event) {
+    event.preventDefault();
+
+    try {
+      clearMessages();
+
+      const body = {
+        name: registerForm.name,
+        email: registerForm.email,
+        password: registerForm.password
+      };
+
+      if (registerForm.adminCode.trim()) {
+        body.adminCode = registerForm.adminCode.trim();
+      }
+
+      const data = await apiRequest("/auth/register", {
         method: "POST",
         body
       });
 
-      localStorage.setItem("helpdeskToken", data.token);
-      localStorage.setItem("helpdeskUser", JSON.stringify(data.user));
-
-      setToken(data.token);
-      setUser(data.user);
-      setAuthForm(emptyAuthForm);
-      setMessage(data.message);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
+      saveSession(data);
+      setRegisterForm({
+        name: "",
+        email: "",
+        password: "",
+        adminCode: ""
+      });
+      setMessage(`Account created. Logged in as ${data.user.role}.`);
+    } catch (err) {
+      setError(err.message);
     }
   }
 
-  async function loadTickets(currentToken = token) {
-    clearAlerts();
+  async function handleLogin(event) {
+    event.preventDefault();
 
     try {
-      const data = await apiRequest("/tickets/my", {
-        token: currentToken
+      clearMessages();
+
+      const data = await apiRequest("/auth/login", {
+        method: "POST",
+        body: loginForm
       });
 
-      setTickets(data.tickets || []);
-    } catch (requestError) {
-      setError(requestError.message);
+      saveSession(data);
+      setLoginForm({
+        email: "",
+        password: ""
+      });
+      setMessage(`Logged in as ${data.user.role}.`);
+    } catch (err) {
+      setError(err.message);
     }
   }
 
-  async function handleTicketSubmit(event) {
+  async function handleCreateTicket(event) {
     event.preventDefault();
-    clearAlerts();
-    setLoading(true);
 
     try {
+      clearMessages();
+
       const data = await apiRequest("/tickets", {
         method: "POST",
         token,
         body: ticketForm
       });
 
-      setTickets((currentTickets) => [data.ticket, ...currentTickets]);
-      setSelectedTicket(data.ticket);
-      setTicketForm(emptyTicketForm);
+      setTicketForm({
+        title: "",
+        description: "",
+        category: "Hardware",
+        priority: "Low"
+      });
+
       setMessage("Ticket created successfully.");
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
+      setSelectedTicket(data.ticket);
+      await loadTickets();
+    } catch (err) {
+      setError(err.message);
     }
   }
 
-  function handleLogout() {
-    localStorage.removeItem("helpdeskToken");
-    localStorage.removeItem("helpdeskUser");
+  async function handleStatusChange(ticketId, status) {
+    try {
+      clearMessages();
 
-    setUser(null);
-    setToken("");
-    setTickets([]);
-    setSelectedTicket(null);
-    setMessage("");
-    setError("");
+      const data = await apiRequest(`/tickets/${ticketId}/status`, {
+        method: "PATCH",
+        token,
+        body: {
+          status
+        }
+      });
+
+      setSelectedTicket(data.ticket);
+      setMessage("Ticket status updated.");
+      await loadTickets();
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
-  function switchAuthMode(nextMode) {
-    setAuthMode(nextMode);
-    setAuthForm(emptyAuthForm);
-    clearAlerts();
+  async function handleAddComment(event) {
+    event.preventDefault();
+
+    if (!selectedTicket) {
+      return;
+    }
+
+    try {
+      clearMessages();
+
+      const data = await apiRequest(`/tickets/${selectedTicket.id}/comments`, {
+        method: "POST",
+        token,
+        body: {
+          body: commentBody
+        }
+      });
+
+      setCommentBody("");
+      setSelectedTicket(data.ticket);
+      setMessage("Comment added successfully.");
+      await loadTickets();
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
-  if (!isLoggedIn) {
+  useEffect(() => {
+    loadTickets();
+  }, [token, user]);
+
+  if (!token || !user) {
     return (
       <main className="page">
         <section className="auth-card">
-          <div className="brand-block">
-            <p className="eyebrow">MVP Help Desk</p>
+          <div className="app-title">
             <h1>IT Help Desk Ticket System</h1>
-            <p className="subtext">
-              Sign in or create an account to submit and track support tickets.
-            </p>
+            <p>Sign in or create an account to manage support tickets.</p>
           </div>
 
           <div className="tabs">
             <button
-              className={authMode === "login" ? "tab active" : "tab"}
-              type="button"
-              onClick={() => switchAuthMode("login")}
+              className={authMode === "login" ? "active" : ""}
+              onClick={() => {
+                setAuthMode("login");
+                clearMessages();
+              }}
             >
               Login
             </button>
             <button
-              className={authMode === "register" ? "tab active" : "tab"}
-              type="button"
-              onClick={() => switchAuthMode("register")}
+              className={authMode === "register" ? "active" : ""}
+              onClick={() => {
+                setAuthMode("register");
+                clearMessages();
+              }}
             >
-              Sign up
+              Sign Up
             </button>
           </div>
 
-          <form className="form" onSubmit={handleAuthSubmit}>
-            {authMode === "register" && (
+          {message && <div className="alert success">{message}</div>}
+          {error && <div className="alert error">{error}</div>}
+
+          {authMode === "login" ? (
+            <form className="form" onSubmit={handleLogin}>
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={loginForm.email}
+                  onChange={(event) =>
+                    setLoginForm({
+                      ...loginForm,
+                      email: event.target.value
+                    })
+                  }
+                />
+              </label>
+
+              <label>
+                Password
+                <input
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(event) =>
+                    setLoginForm({
+                      ...loginForm,
+                      password: event.target.value
+                    })
+                  }
+                />
+              </label>
+
+              <button className="primary-button" type="submit">
+                Log In
+              </button>
+
+              <div className="demo-box">
+                <p>Demo user: user@example.com / password123</p>
+                <p>Demo admin: admin@example.com / password123</p>
+              </div>
+            </form>
+          ) : (
+            <form className="form" onSubmit={handleRegister}>
               <label>
                 Name
                 <input
-                  name="name"
-                  value={authForm.name}
-                  onChange={updateAuthForm}
-                  placeholder="Ben Sherer"
+                  type="text"
+                  value={registerForm.name}
+                  onChange={(event) =>
+                    setRegisterForm({
+                      ...registerForm,
+                      name: event.target.value
+                    })
+                  }
                 />
               </label>
-            )}
 
-            <label>
-              Email
-              <input
-                name="email"
-                type="email"
-                value={authForm.email}
-                onChange={updateAuthForm}
-                placeholder="ben@example.com"
-              />
-            </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={registerForm.email}
+                  onChange={(event) =>
+                    setRegisterForm({
+                      ...registerForm,
+                      email: event.target.value
+                    })
+                  }
+                />
+              </label>
 
-            <label>
-              Password
-              <input
-                name="password"
-                type="password"
-                value={authForm.password}
-                onChange={updateAuthForm}
-                placeholder="At least 6 characters"
-              />
-            </label>
+              <label>
+                Password
+                <input
+                  type="password"
+                  value={registerForm.password}
+                  onChange={(event) =>
+                    setRegisterForm({
+                      ...registerForm,
+                      password: event.target.value
+                    })
+                  }
+                />
+              </label>
 
-            {error && <p className="alert error">{error}</p>}
-            {message && <p className="alert success">{message}</p>}
+              <label>
+                Admin Code
+                <input
+                  type="text"
+                  placeholder="Optional"
+                  value={registerForm.adminCode}
+                  onChange={(event) =>
+                    setRegisterForm({
+                      ...registerForm,
+                      adminCode: event.target.value
+                    })
+                  }
+                />
+              </label>
 
-            <button className="primary-button" type="submit" disabled={loading}>
-              {loading ? "Working..." : authMode === "login" ? "Login" : "Create account"}
-            </button>
-          </form>
+              <button className="primary-button" type="submit">
+                Create Account
+              </button>
+
+              <div className="demo-box">
+                <p>Leave admin code blank for a normal user.</p>
+                <p>Use admin123 to create an admin account.</p>
+              </div>
+            </form>
+          )}
         </section>
       </main>
     );
@@ -239,135 +397,266 @@ function App() {
 
   return (
     <main className="dashboard-page">
-      <header className="topbar">
+      <header className="top-bar">
         <div>
-          <p className="eyebrow">Logged in as {user.name}</p>
-          <h1>IT Help Desk Ticket System</h1>
+          <h1>IT Help Desk</h1>
+          <p>
+            Logged in as {user.name} <span className="role-badge">{user.role}</span>
+          </p>
         </div>
 
-        <button className="secondary-button" type="button" onClick={handleLogout}>
-          Logout
-        </button>
+        <div className="top-actions">
+          <button className="secondary-button" onClick={loadTickets}>
+            Refresh
+          </button>
+          <button className="danger-button" onClick={logout}>
+            Log Out
+          </button>
+        </div>
       </header>
 
-      <section className="dashboard-grid">
-        <section className="panel">
-          <h2>Create support ticket</h2>
-          <p className="panel-text">
-            Submit a new IT problem and it will be saved to your dashboard.
-          </p>
+      {message && <div className="alert success">{message}</div>}
+      {error && <div className="alert error">{error}</div>}
 
-          <form className="form" onSubmit={handleTicketSubmit}>
+      <section className="stats-grid">
+        <div className="stat-card">
+          <span>Total Tickets</span>
+          <strong>{ticketCounts.total}</strong>
+        </div>
+        <div className="stat-card">
+          <span>Open</span>
+          <strong>{ticketCounts.open}</strong>
+        </div>
+        <div className="stat-card">
+          <span>In Progress</span>
+          <strong>{ticketCounts.inProgress}</strong>
+        </div>
+        <div className="stat-card">
+          <span>Resolved</span>
+          <strong>{ticketCounts.resolved}</strong>
+        </div>
+      </section>
+
+      <section className="content-grid">
+        <div className="panel">
+          <div className="panel-heading">
+            <h2>{isAdmin ? "All Tickets" : "My Tickets"}</h2>
+            <p>
+              {isAdmin
+                ? "Admin view shows every submitted ticket."
+                : "User view shows only tickets created by this account."}
+            </p>
+          </div>
+
+          {loadingTickets ? (
+            <p className="empty-text">Loading tickets...</p>
+          ) : tickets.length === 0 ? (
+            <p className="empty-text">No tickets found.</p>
+          ) : (
+            <div className="ticket-list">
+              {tickets.map((ticket) => (
+                <button
+                  key={ticket.id}
+                  className={`ticket-card ${
+                    selectedTicket?.id === ticket.id ? "selected" : ""
+                  }`}
+                  onClick={() => loadTicketDetails(ticket.id)}
+                >
+                  <div>
+                    <h3>{ticket.title}</h3>
+                    <p>{ticket.category} • {ticket.priority} priority</p>
+                    {isAdmin && <p>Created by {ticket.createdByName}</p>}
+                  </div>
+
+                  <div className="ticket-meta">
+                    <span className={`status-pill ${ticket.status.replaceAll(" ", "-").toLowerCase()}`}>
+                      {ticket.status}
+                    </span>
+                    <span>{ticket.commentCount || 0} comments</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="panel">
+          <div className="panel-heading">
+            <h2>Create Ticket</h2>
+            <p>Submit a new IT support request.</p>
+          </div>
+
+          <form className="form" onSubmit={handleCreateTicket}>
             <label>
               Title
               <input
-                name="title"
+                type="text"
                 value={ticketForm.title}
-                onChange={updateTicketForm}
-                placeholder="Computer will not connect to Wi-Fi"
+                onChange={(event) =>
+                  setTicketForm({
+                    ...ticketForm,
+                    title: event.target.value
+                  })
+                }
               />
             </label>
 
             <label>
               Description
               <textarea
-                name="description"
-                value={ticketForm.description}
-                onChange={updateTicketForm}
-                placeholder="Explain what is happening and what you already tried."
                 rows="5"
+                value={ticketForm.description}
+                onChange={(event) =>
+                  setTicketForm({
+                    ...ticketForm,
+                    description: event.target.value
+                  })
+                }
               />
             </label>
 
-            <div className="form-row">
-              <label>
-                Category
-                <select name="category" value={ticketForm.category} onChange={updateTicketForm}>
-                  <option>Hardware</option>
-                  <option>Software</option>
-                  <option>Network</option>
-                  <option>Account</option>
-                  <option>Other</option>
-                </select>
-              </label>
+            <label>
+              Category
+              <select
+                value={ticketForm.category}
+                onChange={(event) =>
+                  setTicketForm({
+                    ...ticketForm,
+                    category: event.target.value
+                  })
+                }
+              >
+                {categories.map((category) => (
+                  <option key={category}>{category}</option>
+                ))}
+              </select>
+            </label>
 
-              <label>
-                Priority
-                <select name="priority" value={ticketForm.priority} onChange={updateTicketForm}>
-                  <option>Low</option>
-                  <option>Medium</option>
-                  <option>High</option>
-                </select>
-              </label>
-            </div>
+            <label>
+              Priority
+              <select
+                value={ticketForm.priority}
+                onChange={(event) =>
+                  setTicketForm({
+                    ...ticketForm,
+                    priority: event.target.value
+                  })
+                }
+              >
+                {priorities.map((priority) => (
+                  <option key={priority}>{priority}</option>
+                ))}
+              </select>
+            </label>
 
-            {error && <p className="alert error">{error}</p>}
-            {message && <p className="alert success">{message}</p>}
-
-            <button className="primary-button" type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Create ticket"}
+            <button className="primary-button" type="submit">
+              Create Ticket
             </button>
           </form>
-        </section>
-
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <h2>My tickets</h2>
-              <p className="panel-text">Tickets created by your account.</p>
-            </div>
-
-            <button className="small-button" type="button" onClick={() => loadTickets()}>
-              Refresh
-            </button>
-          </div>
-
-          {tickets.length === 0 ? (
-            <div className="empty-state">
-              <p>No tickets yet.</p>
-              <span>Create one to test the MVP flow.</span>
-            </div>
-          ) : (
-            <div className="ticket-list">
-              {tickets.map((ticket) => (
-                <button
-                  className={
-                    selectedTicket?.id === ticket.id ? "ticket-card selected" : "ticket-card"
-                  }
-                  key={ticket.id}
-                  type="button"
-                  onClick={() => setSelectedTicket(ticket)}
-                >
-                  <div>
-                    <h3>{ticket.title}</h3>
-                    <p>{ticket.category}</p>
-                  </div>
-
-                  <div className="ticket-meta">
-                    <span>{ticket.priority}</span>
-                    <strong>{ticket.status}</strong>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
+        </div>
       </section>
 
-      {selectedTicket && (
-        <section className="panel ticket-detail">
-          <p className="eyebrow">Ticket detail</p>
-          <h2>{selectedTicket.title}</h2>
-          <p>{selectedTicket.description}</p>
+      <section className="panel detail-panel">
+        <div className="panel-heading">
+          <h2>Ticket Details</h2>
+          <p>Select a ticket to view comments and status.</p>
+        </div>
 
-          <div className="detail-grid">
-            <span>Category: {selectedTicket.category}</span>
-            <span>Priority: {selectedTicket.priority}</span>
-            <span>Status: {selectedTicket.status}</span>
-            <span>Created by: {selectedTicket.createdByName}</span>
+        {!selectedTicket ? (
+          <p className="empty-text">No ticket selected.</p>
+        ) : (
+          <div className="ticket-detail">
+            <div className="detail-header">
+              <div>
+                <h3>{selectedTicket.title}</h3>
+                <p>Created by {selectedTicket.createdByName}</p>
+              </div>
+
+              <span className={`status-pill ${selectedTicket.status.replaceAll(" ", "-").toLowerCase()}`}>
+                {selectedTicket.status}
+              </span>
+            </div>
+
+            <div className="detail-grid">
+              <div>
+                <span>Category</span>
+                <strong>{selectedTicket.category}</strong>
+              </div>
+              <div>
+                <span>Priority</span>
+                <strong>{selectedTicket.priority}</strong>
+              </div>
+              <div>
+                <span>Created</span>
+                <strong>{new Date(selectedTicket.createdAt).toLocaleString()}</strong>
+              </div>
+              <div>
+                <span>Updated</span>
+                <strong>{new Date(selectedTicket.updatedAt).toLocaleString()}</strong>
+              </div>
+            </div>
+
+            <div className="description-box">
+              <h4>Description</h4>
+              <p>{selectedTicket.description}</p>
+            </div>
+
+            {isAdmin && (
+              <div className="status-editor">
+                <label>
+                  Update Status
+                  <select
+                    value={selectedTicket.status}
+                    onChange={(event) =>
+                      handleStatusChange(selectedTicket.id, event.target.value)
+                    }
+                  >
+                    {statuses.map((status) => (
+                      <option key={status}>{status}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
+
+            <div className="comments-section">
+              <h4>Comments</h4>
+
+              {!selectedTicket.comments || selectedTicket.comments.length === 0 ? (
+                <p className="empty-text">No comments yet.</p>
+              ) : (
+                <div className="comments-list">
+                  {selectedTicket.comments.map((comment) => (
+                    <div className="comment-card" key={comment.id}>
+                      <div className="comment-top">
+                        <strong>{comment.createdByName}</strong>
+                        <span>{comment.createdByRole}</span>
+                      </div>
+                      <p>{comment.body}</p>
+                      <small>{new Date(comment.createdAt).toLocaleString()}</small>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <form className="form comment-form" onSubmit={handleAddComment}>
+                <label>
+                  Add Comment
+                  <textarea
+                    rows="3"
+                    value={commentBody}
+                    onChange={(event) => setCommentBody(event.target.value)}
+                  />
+                </label>
+
+                <button className="primary-button" type="submit">
+                  Add Comment
+                </button>
+              </form>
+            </div>
           </div>
-        </section>
-      )}
+        )}
+      </section>
     </main>
   );
 }
