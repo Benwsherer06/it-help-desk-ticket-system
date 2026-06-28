@@ -1,12 +1,18 @@
 IT Help Desk Ticket System
 
-A full stack help desk app where users can sign up, log in, create support tickets and also view their submitted tickets.
+A full-stack help desk app where users can sign up, log in, create support tickets and also view their submitted tickets.
 
-Current MVP features implemented:
+Current version
 
-Users can create an account, log in, log out, create a ticket and view their own tickets on the dashboard.
+v0.2-beta
 
-The app includes basic validation for missing fields, duplicate accounts and wrong login information.
+Current features
+
+Users can create an account, log in, log out, create tickets, view their own tickets and add comments to their tickets.
+
+Admin users can view all tickets, open ticket details, update ticket statuses and add comments.
+
+The app includes basic validation and error handling for missing fields, duplicate accounts, invalid login information, blank comments and protected routes.
 
 Tech stack
 
@@ -14,17 +20,57 @@ Frontend: React with Vite
 
 Backend: Node.js and Express
 
-Storage for MVP: Local JSON file
+Storage for beta: Local JSON file
 
 Languages: JavaScript, JSX, CSS and JSON
 
-Complexity anchor
+Complexity anchors
 
 Authentication and authorization
 
-The MVP has signup, login, password hashing, login tokens and protected ticket routes.
+Role-based access control
 
-Full tutorial:
+Ticket comments and ticket data relationships
+
+What is done
+
+Signup and login
+
+Password hashing
+
+Login tokens
+
+Protected routes
+
+Regular user dashboard
+
+Admin dashboard
+
+Ticket creation
+
+Ticket detail view
+
+Ticket status updates
+
+Ticket comments
+
+Basic validation and error handling
+
+Improved dashboard layout and user feedback
+
+What is next
+
+Replace local JSON storage with PostgreSQL
+
+Add stronger search and filtering
+
+Add technician assignment
+
+Add automated tests
+
+Add deployment
+
+How to run the project
 
 Clone the repo.
 
@@ -50,40 +96,28 @@ npm.cmd install
 
 npm.cmd run dev
 
-The frontend runs at http://localhost:5173 normally
+The frontend runs at http://localhost:5173
 
-How to test the MVP:
+How to test the beta
 
 Start the backend and frontend.
 
 Open http://localhost:5173 in the browser.
 
-Create an account.
+Create a normal user account.
 
-Log out.
+Create an admin account using admin code admin123.
 
-Log back in.
+Log in as a regular user and create a ticket.
 
-Create a ticket.
+Add a comment to the ticket.
 
-Check that the ticket appears on the dashboard.
+Log out and log in as the admin.
 
-Click the ticket to view the details.
+Confirm the admin can view all tickets.
 
-Try to submit a blank ticket to confirm the error message works.
+Open a ticket.
 
-Future improvements
+Change the ticket status.
 
-Add PostgreSQL.
-
-Add technician or admin dashboard.
-
-Add ticket comments.
-
-Add ticket status updates.
-
-Add search and filtering.
-
-Add deployment.
-
-As well as finish up all the issues that say "In Progress"
+Add an admin comment.
